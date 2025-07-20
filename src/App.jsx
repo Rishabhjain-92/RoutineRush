@@ -6,8 +6,11 @@ import LoginPage from './components/LoginPage';
 import ContactPage from './components/ContactPage';
 import AboutPage from './components/AboutPage';
 import DashboardPage from "./pages/DashboardPage";
+import RoutinePage from './pages/RoutinePage';
 
 import './App.css';
+import CheckprogressPage from './pages/CheckProgressPage';
+import GroupTrackingPage from './pages/GroupTrackingPage';
 
 function App() {
   return (
@@ -20,6 +23,9 @@ function App() {
           <Route path="/contact" element={<ContactPage />} />
           <Route path="/about" element={<AboutPage />} />
           <Route path="/dashboard" element={<DashboardPage />} />
+            <Route path="/routine" element={<RoutinePage />} />
+            <Route path="/progress" element={<CheckprogressPage />} />
+            <Route path="/group-tracking" element={<GroupTrackingPage />} />
         </Routes>
       </div>
     </Router>
