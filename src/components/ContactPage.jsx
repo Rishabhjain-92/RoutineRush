@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import {NavLink, Link } from 'react-router-dom';
 import { Sun, Moon, Clock, MapPin, Instagram, Mail, Github, Linkedin, Phone, Send, ArrowRight } from 'lucide-react';
 
 const ContactPage = () => {
@@ -132,13 +132,16 @@ const ContactPage = () => {
               { name: 'Contact', path: '/contact' }
             ].map((item) => (
               <li key={item.name}>
-                <Link 
+                <NavLink 
                   to={item.path}
-                  className={`${themeClasses.muted} hover:${themeClasses.accent} transition-all duration-300 relative group font-medium ${item.name === 'Contact' ? 'text-rose-500 font-bold' : ''}`}
+                   className={({ isActive }) =>
+                 ` text-base lg:text-lg font-medium transition-colors ${isActive ? 'text-amber-700' : 'text-slate-300 hover:text-white'}`
+                }
+                  
                 >
                   {item.name}
                   <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-rose-500 to-orange-500 transition-all duration-300 group-hover:w-full"></span>
-                </Link>
+                </NavLink>
               </li>
             ))}
           </ul>

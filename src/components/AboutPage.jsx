@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { NavLink,Link, useLocation } from 'react-router-dom';
 import { Sun, Moon } from 'lucide-react';
 
 const navLinks = [
@@ -106,13 +106,15 @@ const AboutPage = () => {
                     <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-rose-500 to-orange-500 transition-all duration-300 group-hover:w-full"></span>
                   </a>
                 ) : (
-                  <Link
+                  <NavLink
                     to={item.path}
-                    className={`${themeClasses.muted} hover:${themeClasses.accent} transition-all duration-300 relative group font-medium${location.pathname === item.path ? ' font-bold' : ''}`}
+                    className={({ isActive }) =>
+                 ` text-base lg:text-lg font-medium transition-colors ${isActive ? 'text-amber-700' : 'text-slate-300 hover:text-white'}`}
+                    
                   >
                     {item.name}
                     <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-rose-500 to-orange-500 transition-all duration-300 group-hover:w-full"></span>
-                  </Link>
+                  </NavLink>
                 )}
               </li>
             ))}

@@ -1,10 +1,12 @@
 import { useState, useEffect } from 'react';
-import { Link, NavLink } from 'react-router-dom';
+import { Link,  NavLink } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { Sun, Moon, Calendar, Target, BarChart3, ArrowRight, Instagram, Mail, Github, Linkedin } from 'lucide-react';
 
 const LandingPage = () => {
   const [isDark, setIsDark] = useState(true);
   const [scrollY, setScrollY] = useState(0);
+const navigate  = useNavigate()
 
   useEffect(() => {
     const handleScroll = () => setScrollY(window.scrollY);
@@ -32,7 +34,7 @@ const LandingPage = () => {
   };
 
   return (
-    <NavLink to={"/"}>
+   
     <div className={`min-h-screen transition-all duration-700 ${themeClasses.body}`} style={{ margin: 0, padding: 0, width: '100%', maxWidth: '100%', overflowX: 'hidden' }}>
       {/* Animated Background Particles */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
@@ -105,13 +107,17 @@ const LandingPage = () => {
                     <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-rose-500 to-orange-500 transition-all duration-300 group-hover:w-full"></span>
                   </a>
                 ) : (
-                  <Link 
+                  <NavLink
                     to={item.path}
-                    className={`${themeClasses.muted} hover:${themeClasses.accent} transition-all duration-300 relative group font-medium`}
+                    className={({ isActive }) =>
+                 ` text-base lg:text-lg font-medium transition-colors ${isActive ? 'text-amber-700' : 'text-slate-300 hover:text-white'}`
+                }
+                    
+                
                   >
                     {item.name}
                     <span className="absolute -bottom-1 left-0 w-0 h-0.5 bg-gradient-to-r from-rose-500 to-orange-500 transition-all duration-300 group-hover:w-full"></span>
-                  </Link>
+                  </NavLink>
                 )}
               </li>
             ))}
@@ -164,7 +170,7 @@ const LandingPage = () => {
                   <div className="absolute inset-0 bg-white/20 animate-ping"></div>
                 </div>
               </Link>
-              <button className={`group px-8 py-4 ${themeClasses.card} backdrop-blur-sm rounded-2xl font-bold text-lg transition-all duration-500 hover:scale-105 hover:shadow-xl border hover:rotate-1`}>
+              <button onClick={()=>(navigate("/dashboard"))} className={`group px-8 py-4 ${themeClasses.card} backdrop-blur-sm rounded-2xl font-bold text-lg transition-all duration-500 hover:scale-105 hover:shadow-xl border hover:rotate-1`}>
                 Try Demo
                 <ArrowRight className="inline-block ml-2 w-5 h-5 transition-all duration-300 group-hover:translate-x-2 group-hover:scale-125" />
               </button>
@@ -551,7 +557,7 @@ const LandingPage = () => {
         }
       `}</style>
     </div>
-    </NavLink>
+    
   );
 };
 
