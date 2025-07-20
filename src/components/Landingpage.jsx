@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, NavLink } from 'react-router-dom';
 import { Sun, Moon, Calendar, Target, BarChart3, ArrowRight, Instagram, Mail, Github, Linkedin } from 'lucide-react';
 
 const LandingPage = () => {
@@ -32,6 +32,7 @@ const LandingPage = () => {
   };
 
   return (
+    <NavLink to={"/"}>
     <div className={`min-h-screen transition-all duration-700 ${themeClasses.body}`} style={{ margin: 0, padding: 0, width: '100%', maxWidth: '100%', overflowX: 'hidden' }}>
       {/* Animated Background Particles */}
       <div className="fixed inset-0 overflow-hidden pointer-events-none">
@@ -550,7 +551,8 @@ const LandingPage = () => {
         }
       `}</style>
     </div>
+    </NavLink>
   );
 };
 
-export default LandingPage;
+export {LandingPage}
