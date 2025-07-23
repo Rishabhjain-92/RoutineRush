@@ -12,18 +12,8 @@ import {
   LogOut,
   Plus,
 } from "lucide-react";
-import { Link, NavLink, useLocation } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import SideBar from "../components/Sidebar/SideBar";
-
-// Navigation links
-const navLinks = [
-  { label: "Dashboard", icon: BarChart, to: "/dashboard" },
-  { label: "Check Progress", icon: ArrowRightCircle, to: "/progress" },
-  { label: "Routines", icon: ListCheck, to: "/routine" },
-  { label: "Group Tracking", icon: Users, to: "/group-tracking" },
-  { label: "Contact", icon: Mail, to: "/contact" },
-  { label: "Profile", icon: User, to: "/profile" },
-];
 
 // Demo routines/stat data
 const sampleRoutines = [
@@ -44,7 +34,6 @@ const sampleRoutines = [
 export default function DashboardPage() {
   const [isDark, setIsDark] = useState(true);
   const location = useLocation();
-    const toggleTheme = () => setIsDark(!isDark);
 
   const themeClasses = {
     bg: isDark
@@ -63,42 +52,12 @@ export default function DashboardPage() {
       : "bg-gradient-to-r from-indigo-500 to-purple-500",
   };
 
-  // Stable animated dots for background (per session)
-  const [particles] = useState(() =>
-    Array.from({ length: 26 }, () => ({
-      left: Math.random() * 100,
-      top: Math.random() * 100,
-      delay: Math.random() * 5,
-      duration: 3 + Math.random() * 4,
-    }))
-  );
-
   return (
-    <NavLink 
-    to="/dashboard"
-    className={({ isActive }) =>
-                 ` text-base lg:text-lg font-medium transition-colors ${isActive ? 'text-amber-700' : 'text-slate-300 hover:text-white'}`
-                }
+    <div
+      className={`flex h-screen w-full overflow-hidden ${themeClasses.bg} transition-all duration-700`}
     >
-    <div className={`flex h-screen w-full overflow-hidden ${themeClasses.bg} transition-all duration-700`}>
-      {/* Sidebar */}
-      <SideBar/>
-
-      {/* Particle Background */}
-      <div className="absolute inset-0 -z-10 pointer-events-none">
-        {particles.map((p, i) => (
-          <div
-            key={i}
-            className={`absolute w-1 h-1 rounded-full ${isDark ? "bg-blue-400/30" : "bg-indigo-400/40"} animate-pulse`}
-            style={{
-              left: `${p.left}%`,
-              top: `${p.top}%`,
-              animationDelay: `${p.delay}s`,
-              animationDuration: `${p.duration}s`,
-            }}
-          />
-        ))}
-      </div>
+      {/* Pass theme and toggle for SideBar */}
+      <SideBar isDark={isDark} setIsDark={setIsDark} location={location} />
 
       {/* Main Content */}
       <main className="flex-1 px-3 md:px-12 py-8 md:py-12 relative overflow-y-auto">
@@ -113,15 +72,21 @@ export default function DashboardPage() {
             </p>
           </div>
           <div className="grid grid-cols-3 gap-5 w-full md:w-auto">
-            <div className={`${themeClasses.card} p-4 rounded-2xl border flex flex-col items-center`}>
+            <div
+              className={`${themeClasses.card} p-4 rounded-2xl border flex flex-col items-center`}
+            >
               <span className="text-sm font-medium mb-1">Tasks Completed Today</span>
               <span className="font-extrabold text-2xl text-green-400">5</span>
             </div>
-            <div className={`${themeClasses.card} p-4 rounded-2xl border flex flex-col items-center`}>
+            <div
+              className={`${themeClasses.card} p-4 rounded-2xl border flex flex-col items-center`}
+            >
               <span className="text-sm font-medium mb-1">Total Streak</span>
               <span className="font-extrabold text-2xl text-purple-400">23</span>
             </div>
-            <div className={`${themeClasses.card} p-4 rounded-2xl border flex flex-col items-center`}>
+            <div
+              className={`${themeClasses.card} p-4 rounded-2xl border flex flex-col items-center`}
+            >
               <span className="text-sm font-medium mb-1">Upcoming Routines</span>
               <span className="font-extrabold text-2xl text-blue-400">3</span>
             </div>
@@ -143,7 +108,9 @@ export default function DashboardPage() {
             {sampleRoutines.map((routine) => (
               <Link
                 key={routine.name}
-                to={`/routines/${encodeURIComponent(routine.name.replace(/\s+/g, '-').toLowerCase())}`}
+                to={`/routines/${encodeURIComponent(
+                  routine.name.replace(/\s+/g, "-").toLowerCase()
+                )}`}
                 className={`flex flex-col md:flex-row items-center md:items-stretch ${themeClasses.card} border rounded-3xl p-6 gap-6 hover:scale-[1.025] group transition-transform duration-300 hover:shadow-lg`}
                 style={{ textDecoration: "none" }}
               >
@@ -178,6 +145,5 @@ export default function DashboardPage() {
         </section>
       </main>
     </div>
-    </NavLink>
   );
 }

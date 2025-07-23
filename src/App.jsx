@@ -1,6 +1,6 @@
 // src/App.jsx
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
-import {LandingPage} from './components/LandingPage';
+import LandingPage from './components/LandingPage';
 import SignupPage from './components/SignupPage';
 import LoginPage from './components/LoginPage';
 import ContactPage from './components/ContactPage';
@@ -11,6 +11,7 @@ import RoutinePage from './pages/RoutinePage';
 import './App.css';
 import CheckprogressPage from './pages/CheckProgressPage';
 import GroupTrackingPage from './pages/GroupTrackingPage';
+import ProfilePage from './pages/ProfilePage';
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
             <Route path="/routine" element={<RoutinePage />} />
             <Route path="/progress" element={<CheckprogressPage />} />
             <Route path="/group-tracking" element={<GroupTrackingPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
         </Routes>
       </div>
     </Router>
