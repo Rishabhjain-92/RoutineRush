@@ -178,7 +178,7 @@ const LoginPage = () => {
                       value={formData.email}
                       onChange={handleInputChange}
                       className={`w-full pl-12 pr-4 py-3 ${themeClasses.input} border rounded-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-rose-500/50 hover:scale-105`}
-                      placeholder="john@example.com"
+                      placeholder="routineRush@example.com"
                     />
                   </div>
                   {errors.email && <p className="text-red-500 text-sm mt-1 flex items-center"><X className="w-4 h-4 mr-1" />{errors.email}</p>}
