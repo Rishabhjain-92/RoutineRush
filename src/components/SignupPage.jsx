@@ -212,7 +212,7 @@ const SignupPage = () => {
                         value={formData.firstName}
                         onChange={handleInputChange}
                         className={`w-full pl-12 pr-4 py-3 ${themeClasses.input} border rounded-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-rose-500/50 hover:scale-105`}
-                        placeholder="John"
+                        placeholder="FirstName"
                       />
                     </div>
                     {errors.firstName && <p className="text-red-500 text-sm mt-1 flex items-center"><X className="w-4 h-4 mr-1" />{errors.firstName}</p>}
@@ -227,7 +227,7 @@ const SignupPage = () => {
                         value={formData.lastName}
                         onChange={handleInputChange}
                         className={`w-full pl-12 pr-4 py-3 ${themeClasses.input} border rounded-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-rose-500/50 hover:scale-105`}
-                        placeholder="Doe"
+                        placeholder="LastName"
                       />
                     </div>
                     {errors.lastName && <p className="text-red-500 text-sm mt-1 flex items-center"><X className="w-4 h-4 mr-1" />{errors.lastName}</p>}
@@ -245,7 +245,7 @@ const SignupPage = () => {
                       value={formData.email}
                       onChange={handleInputChange}
                       className={`w-full pl-12 pr-4 py-3 ${themeClasses.input} border rounded-xl transition-all duration-300 focus:outline-none focus:ring-2 focus:ring-rose-500/50 hover:scale-105`}
-                      placeholder="john@example.com"
+                      placeholder="routineRush@example.com"
                     />
                   </div>
                   {errors.email && <p className="text-red-500 text-sm mt-1 flex items-center"><X className="w-4 h-4 mr-1" />{errors.email}</p>}
