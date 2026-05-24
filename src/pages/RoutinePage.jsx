@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, Check, X } from 'lucide-react';
+import { Plus, Edit2, Trash2, Check, X, GripVertical } from 'lucide-react';
+import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import SideBar from '../components/Sidebar/SideBar';
 import { useTheme } from '../context/ThemeContext';
 import API from '../api/axios';
@@ -15,6 +16,9 @@ export default function RoutinePage() {
     name: '', category: '', frequency: 'Daily', notes: '',
   });
   const [tasks, setTasks] = useState([{ name: '', time: '' }]);
+  const [aiPrompt, setAiPrompt] = useState('');
+  const [aiLoading, setAiLoading] = useState(false);
+  const [showAiInput, setShowAiInput] = useState(false);
 
   useEffect(() => { fetchRoutines(); }, []);
 
@@ -33,6 +37,8 @@ export default function RoutinePage() {
     setFormData({ name: '', category: '', frequency: 'Daily', notes: '' });
     setTasks([{ name: '', time: '' }]);
     setEditingId(null);
+    setShowAiInput(false);
+    setAiPrompt('');
   };
 
   const handleSubmit = async (e) => {
@@ -93,6 +99,39 @@ export default function RoutinePage() {
       setTasks([{ name: '', time: '' }]);
     } else {
       setTasks(tasks.filter((_, i) => i !== index));
+    }
+  };
+
+  const handleDragEnd = (result) => {
+    if (!result.destination) return;
+    const items = Array.from(tasks);
+    const [reorderedItem] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reorderedItem);
+    setTasks(items);
+  };
+
+  const handleAiSuggest = async () => {
+    if (!aiPrompt.trim()) return;
+    setAiLoading(true);
+    try {
+      const { data } = await API.post('/ai/suggest', { prompt: aiPrompt });
+      if (data.tasks && data.tasks.length > 0) {
+        // Replace empty first row or append
+        if (tasks.length === 1 && !tasks[0].name.trim() && !tasks[0].time) {
+          setTasks(data.tasks);
+        } else {
+          setTasks([...tasks, ...data.tasks]);
+        }
+        setShowAiInput(false);
+        setAiPrompt('');
+        toast.success('AI Suggestions added! ✨');
+      } else {
+        toast.error('AI could not generate tasks. Try a different prompt.');
+      }
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to get AI suggestions');
+    } finally {
+      setAiLoading(false);
     }
   };
 
@@ -274,12 +313,12 @@ export default function RoutinePage() {
                 />
                 <div className="flex gap-3">
                   <input className={`flex-1 p-3 rounded-xl border ${themeClasses.input} focus:outline-none`} placeholder="Category (optional, e.g. Fitness)" value={formData.category} onChange={(e) => setFormData({ ...formData, category: e.target.value })} />
-                  <select className={`flex-1 p-3 rounded-xl border ${themeClasses.input} focus:outline-none`} value={formData.frequency} onChange={(e) => setFormData({ ...formData, frequency: e.target.value })}>
-                    <option value="Daily">Daily</option>
-                    <option value="Weekly">Weekly</option>
-                    <option value="Monthly">Monthly</option>
-                    <option value="Every 2 Days">Every 2 Days</option>
-                    <option value="Every 3 Days">Every 3 Days</option>
+                  <select className={`flex-1 p-3 rounded-xl border ${themeClasses.input} focus:outline-none cursor-pointer`} value={formData.frequency} onChange={(e) => setFormData({ ...formData, frequency: e.target.value })}>
+                    <option className={isDark ? 'bg-slate-800 text-white' : 'bg-white text-slate-900'} value="Daily">Daily</option>
+                    <option className={isDark ? 'bg-slate-800 text-white' : 'bg-white text-slate-900'} value="Weekly">Weekly</option>
+                    <option className={isDark ? 'bg-slate-800 text-white' : 'bg-white text-slate-900'} value="Monthly">Monthly</option>
+                    <option className={isDark ? 'bg-slate-800 text-white' : 'bg-white text-slate-900'} value="Every 2 Days">Every 2 Days</option>
+                    <option className={isDark ? 'bg-slate-800 text-white' : 'bg-white text-slate-900'} value="Every 3 Days">Every 3 Days</option>
                   </select>
                 </div>
 
@@ -287,40 +326,89 @@ export default function RoutinePage() {
                 <div className="space-y-3">
                   <div className="flex justify-between items-center">
                     <h4 className="text-sm font-extrabold text-slate-400 uppercase tracking-wider">Routine Tasks *</h4>
-                    <button
-                      type="button"
-                      onClick={handleAddTaskRow}
-                      className="px-3 py-1 rounded-xl text-xs bg-rose-500/10 text-rose-400 border border-rose-500/20 font-bold hover:bg-rose-500/25 transition"
-                    >
-                      + Add Task
-                    </button>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setShowAiInput(!showAiInput)}
+                        className="px-3 py-1 rounded-xl text-xs bg-indigo-500/10 text-indigo-400 border border-indigo-500/20 font-bold hover:bg-indigo-500/25 transition flex items-center gap-1"
+                      >
+                        ✨ AI Suggest
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleAddTaskRow}
+                        className="px-3 py-1 rounded-xl text-xs bg-rose-500/10 text-rose-400 border border-rose-500/20 font-bold hover:bg-rose-500/25 transition"
+                      >
+                        + Add Task
+                      </button>
+                    </div>
                   </div>
+                  
+                  {showAiInput && (
+                    <div className={`p-3 rounded-xl border flex gap-2 items-center ${isDark ? 'bg-slate-800/80 border-indigo-500/30' : 'bg-indigo-50 border-indigo-200'} animate-fadeIn`}>
+                      <input
+                        className={`flex-1 p-2 rounded-lg border text-sm ${themeClasses.input} focus:outline-none`}
+                        placeholder="E.g., Morning workout, Exam prep"
+                        value={aiPrompt}
+                        onChange={(e) => setAiPrompt(e.target.value)}
+                        onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), handleAiSuggest())}
+                      />
+                      <button
+                        type="button"
+                        onClick={handleAiSuggest}
+                        disabled={aiLoading || !aiPrompt.trim()}
+                        className="px-4 py-2 bg-indigo-500 text-white text-xs font-bold rounded-lg shadow disabled:opacity-50 hover:bg-indigo-600 transition"
+                      >
+                        {aiLoading ? 'Thinking...' : 'Generate'}
+                      </button>
+                    </div>
+                  )}
                   <div className="max-h-[180px] overflow-y-auto pr-1 space-y-2">
-                    {tasks.map((task, index) => (
-                      <div key={index} className="flex gap-2 items-center animate-fadeIn">
-                        <input
-                          className={`flex-1 p-2.5 rounded-xl border text-sm ${themeClasses.input} focus:outline-none`}
-                          placeholder="Task name (e.g. Wake up) *"
-                          value={task.name}
-                          onChange={(e) => handleTaskChange(index, 'name', e.target.value)}
-                        />
-                        <input
-                          className={`w-[110px] p-2.5 rounded-xl border text-sm text-center font-bold bg-rose-500/10 border-rose-500/20 text-rose-400 focus:outline-none focus:ring-2 focus:ring-rose-500/40 cursor-pointer hover:bg-rose-500/20 transition`}
-                          type="time"
-                          value={task.time}
-                          onChange={(e) => handleTaskChange(index, 'time', e.target.value)}
-                          title="Optional Scheduled Time"
-                        />
-                        <button
-                          type="button"
-                          onClick={() => handleRemoveTaskRow(index)}
-                          className="p-2.5 rounded-xl bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20 transition flex items-center justify-center flex-shrink-0"
-                          title="Remove Task"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </div>
-                    ))}
+                    <DragDropContext onDragEnd={handleDragEnd}>
+                      <Droppable droppableId="tasks">
+                        {(provided) => (
+                          <div {...provided.droppableProps} ref={provided.innerRef} className="space-y-2">
+                            {tasks.map((task, index) => (
+                              <Draggable key={`task-${index}`} draggableId={`task-${index}`} index={index}>
+                                {(provided) => (
+                                  <div
+                                    ref={provided.innerRef}
+                                    {...provided.draggableProps}
+                                    className={`flex gap-2 items-center animate-fadeIn ${isDark ? 'bg-slate-800/50' : 'bg-slate-100/50'} p-1.5 rounded-xl border ${isDark ? 'border-slate-700/50' : 'border-slate-200/50'}`}
+                                  >
+                                    <div {...provided.dragHandleProps} className="px-1 text-slate-400 hover:text-rose-500 transition cursor-grab active:cursor-grabbing">
+                                      <GripVertical className="w-4 h-4" />
+                                    </div>
+                                    <input
+                                      className={`flex-1 p-2 rounded-lg border text-sm ${themeClasses.input} focus:outline-none`}
+                                      placeholder="Task name (e.g. Wake up) *"
+                                      value={task.name}
+                                      onChange={(e) => handleTaskChange(index, 'name', e.target.value)}
+                                    />
+                                    <input
+                                      className={`w-[110px] p-2 rounded-lg border text-sm text-center font-bold bg-rose-500/10 border-rose-500/20 text-rose-400 focus:outline-none focus:ring-2 focus:ring-rose-500/40 cursor-pointer hover:bg-rose-500/20 transition`}
+                                      type="time"
+                                      value={task.time}
+                                      onChange={(e) => handleTaskChange(index, 'time', e.target.value)}
+                                      title="Optional Scheduled Time"
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={() => handleRemoveTaskRow(index)}
+                                      className="p-2 rounded-lg bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20 transition flex items-center justify-center flex-shrink-0"
+                                      title="Remove Task"
+                                    >
+                                      <Trash2 className="w-4 h-4" />
+                                    </button>
+                                  </div>
+                                )}
+                              </Draggable>
+                            ))}
+                            {provided.placeholder}
+                          </div>
+                        )}
+                      </Droppable>
+                    </DragDropContext>
                   </div>
                 </div>
 

@@ -16,7 +16,39 @@ export default function DashboardPage() {
 
   useEffect(() => {
     fetchData();
+    if ('Notification' in window) {
+      Notification.requestPermission();
+    }
   }, []);
+
+  useEffect(() => {
+    if (!routines.length) return;
+    
+    const intervalId = setInterval(() => {
+      const now = new Date();
+      const currentTime = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
+      
+      routines.forEach((routine) => {
+        routine.tasks.forEach((task) => {
+          if (!task.completed && task.time === currentTime) {
+            const notifyKey = `notify_${task._id}_${now.toDateString()}`;
+            if (!localStorage.getItem(notifyKey)) {
+              if (Notification.permission === 'granted') {
+                new Notification('RoutineRush Reminder 🔔', {
+                  body: `Time to: ${task.name} (${routine.name})`,
+                  icon: '/Preview.png'
+                });
+              }
+              toast(`Time to: ${task.name} (${routine.name})`, { icon: '⏰', duration: 10000 });
+              localStorage.setItem(notifyKey, 'true');
+            }
+          }
+        });
+      });
+    }, 30000);
+
+    return () => clearInterval(intervalId);
+  }, [routines]);
 
   const fetchData = async () => {
     try {

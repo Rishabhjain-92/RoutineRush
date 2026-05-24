@@ -8,6 +8,7 @@ import authRoutes from './routes/auth.js';
 import routineRoutes from './routes/routines.js';
 import progressRoutes from './routes/progress.js';
 import userRoutes from './routes/users.js';
+import aiRoutes from './routes/ai.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -33,6 +34,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/routines', routineRoutes);
 app.use('/api/progress', progressRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/ai', aiRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

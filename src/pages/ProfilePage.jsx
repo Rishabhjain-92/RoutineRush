@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { User, Key, Edit2, Trash2 } from 'lucide-react';
+import { useState, useRef } from 'react';
+import { User, Key, Edit2, Trash2, Camera } from 'lucide-react';
 import SideBar from '../components/Sidebar/SideBar';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
@@ -17,6 +17,30 @@ export default function ProfilePage() {
     email: user?.email || '',
     bio: user?.bio || '',
   });
+
+  const fileInputRef = useRef(null);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  const handleAvatarChange = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploadingAvatar(true);
+    const formData = new FormData();
+    formData.append('avatar', file);
+
+    try {
+      const { data } = await API.post('/users/upload-avatar', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      });
+      updateUser({ ...user, avatar: data.avatar });
+      toast.success('Avatar updated! 📸');
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to upload avatar');
+    } finally {
+      setUploadingAvatar(false);
+    }
+  };
 
   function handleInput(e) {
     const { name, value } = e.target;
@@ -46,8 +70,20 @@ export default function ProfilePage() {
         <div className="max-w-2xl mx-auto">
           <div className="flex flex-col items-center mb-10">
             {/* Avatar */}
-            <div className="relative w-28 h-28 rounded-full bg-gradient-to-br from-rose-500 to-orange-500 shadow-lg flex items-center justify-center text-white text-3xl font-bold mb-4">
-              {initials || '?'}
+            <div className="relative group cursor-pointer mb-4" onClick={() => fileInputRef.current?.click()}>
+              {user?.avatar ? (
+                <img src={user.avatar} alt="Avatar" className="w-28 h-28 rounded-full object-cover shadow-lg border-4 border-rose-500/20" />
+              ) : (
+                <div className="w-28 h-28 rounded-full bg-gradient-to-br from-rose-500 to-orange-500 shadow-lg flex items-center justify-center text-white text-3xl font-bold">
+                  {initials || '?'}
+                </div>
+              )}
+              <div className="absolute inset-0 bg-black/60 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                <span className="text-white text-xs font-bold flex flex-col items-center gap-1">
+                  <Camera className="w-5 h-5" /> {uploadingAvatar ? '...' : 'Upload'}
+                </span>
+              </div>
+              <input type="file" ref={fileInputRef} onChange={handleAvatarChange} className="hidden" accept="image/*" disabled={uploadingAvatar} />
             </div>
 
             <h2 className={`font-black text-3xl mb-1 ${themeClasses.accent}`}>

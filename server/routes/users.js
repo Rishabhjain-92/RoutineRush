@@ -2,6 +2,7 @@ import express from 'express';
 import User from '../models/User.js';
 import Routine from '../models/Routine.js';
 import protect from '../middleware/auth.js';
+import upload from '../config/cloudinary.js';
 
 const router = express.Router();
 
@@ -309,6 +310,30 @@ router.get('/leaderboard', async (req, res) => {
   } catch (error) {
     console.error('Get leaderboard error:', error);
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   POST /api/users/upload-avatar
+// @desc    Upload user avatar to Cloudinary
+// @access  Private
+router.post('/upload-avatar', upload.single('avatar'), async (req, res) => {
+  try {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+
+    const user = await User.findById(req.user._id);
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    user.avatar = req.file.path; // Cloudinary secure URL
+    await user.save();
+
+    res.json({ message: 'Avatar updated successfully', avatar: user.avatar });
+  } catch (error) {
+    console.error('Avatar upload error:', error);
+    res.status(500).json({ message: 'Server error during avatar upload' });
   }
 });
 

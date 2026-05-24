@@ -81,9 +81,13 @@ export default function SideBar() {
         {user && (
           <div className="px-4 mb-6">
             <div className={`flex items-center gap-3 p-3 rounded-xl ${themeClasses.cardStatic} border`}>
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-rose-500 to-orange-500 flex items-center justify-center text-white font-bold text-sm">
-                {user.firstName?.[0]}{user.lastName?.[0]}
-              </div>
+              {user.avatar ? (
+                <img src={user.avatar} alt="Avatar" className="w-10 h-10 rounded-full object-cover shadow-sm border border-rose-500/30" />
+              ) : (
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-rose-500 to-orange-500 flex items-center justify-center text-white font-bold text-sm">
+                  {user.firstName?.[0]}{user.lastName?.[0]}
+                </div>
+              )}
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold truncate">{user.firstName} {user.lastName}</p>
                 <p className={`text-xs ${themeClasses.muted} truncate`}>{user.email}</p>
