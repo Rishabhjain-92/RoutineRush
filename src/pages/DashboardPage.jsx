@@ -1,148 +1,201 @@
-import { useState } from "react";
-import {
-  Sun,
-  Moon,
-  BarChart,
-  ListCheck,
-  User,
-  Users,
-  ArrowRightCircle,
-  Mail,
-  Settings,
-  LogOut,
-  Plus,
-} from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
-import SideBar from "../components/Sidebar/SideBar";
-
-// Demo routines/stat data
-const sampleRoutines = [
-  {
-    name: "Morning Routine",
-    tasks: ["Meditation", "Journaling", "Stretching"],
-    completion: 70,
-    streak: 8,
-  },
-  {
-    name: "Night Routine",
-    tasks: ["Reading", "Reflection", "Plan Tomorrow"],
-    completion: 40,
-    streak: 4,
-  },
-];
+import { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { Plus, Flame, ListCheck, Calendar, Trophy } from 'lucide-react';
+import SideBar from '../components/Sidebar/SideBar';
+import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
+import API from '../api/axios';
+import toast from 'react-hot-toast';
 
 export default function DashboardPage() {
-  const [isDark, setIsDark] = useState(true);
-  const location = useLocation();
+  const { isDark, themeClasses } = useTheme();
+  const { user } = useAuth();
+  const [routines, setRoutines] = useState([]);
+  const [stats, setStats] = useState({ todayCompleted: 0, currentStreak: 0, totalRoutines: 0, points: 0 });
+  const [loading, setLoading] = useState(true);
 
-  const themeClasses = {
-    bg: isDark
-      ? "bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white"
-      : "bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 text-slate-800",
-    sidebar: isDark
-      ? "bg-slate-900/90 border-r border-blue-500/10"
-      : "bg-white/80 border-indigo-200/50",
-    card: isDark
-      ? "bg-white/5 border-white/10"
-      : "bg-white/80 border-indigo-200/30",
-    accent: isDark ? "text-blue-400" : "text-indigo-600",
-    muted: isDark ? "text-slate-300" : "text-slate-600",
-    button: isDark
-      ? "bg-gradient-to-r from-blue-500 to-cyan-400"
-      : "bg-gradient-to-r from-indigo-500 to-purple-500",
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const fetchData = async () => {
+    try {
+      const [routinesRes, statsRes] = await Promise.all([
+        API.get('/routines'),
+        API.get('/progress/stats'),
+      ]);
+      setRoutines(routinesRes.data);
+      setStats(statsRes.data);
+    } catch (error) {
+      console.error('Dashboard fetch error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleToggleCompleteRoutine = async (routineId) => {
+    const routine = routines.find((r) => r._id === routineId);
+    const allCompletedBefore = routine?.tasks.length > 0 && routine.tasks.every((t) => t.completed);
+    if (allCompletedBefore) {
+      toast.error('Once marked as completed, a routine cannot be unchecked today!');
+      return;
+    }
+    try {
+      const { data } = await API.put(`/routines/${routineId}/toggle-complete`);
+      toast.success('Routine completed! 🏆 +50 Bonus Points!');
+      fetchData();
+    } catch (error) {
+      console.error('Toggle complete routine error:', error);
+      toast.error(error.response?.data?.message || 'Failed to update routine status');
+    }
+  };
+
+  const getCompletionPercent = (routine) => {
+    if (!routine.tasks || routine.tasks.length === 0) return 0;
+    const completed = routine.tasks.filter((t) => t.completed).length;
+    return Math.round((completed / routine.tasks.length) * 100);
   };
 
   return (
-    <div
-      className={`flex h-screen w-full overflow-hidden ${themeClasses.bg} transition-all duration-700`}
-    >
-      {/* Pass theme and toggle for SideBar */}
-      <SideBar isDark={isDark} setIsDark={setIsDark} location={location} />
+    <div className={`flex h-screen w-full overflow-hidden ${themeClasses.body} transition-all duration-700`}>
+      <SideBar />
 
-      {/* Main Content */}
       <main className="flex-1 px-3 md:px-12 py-8 md:py-12 relative overflow-y-auto">
         {/* Greeting & Quick Stats */}
-        <section className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-6">
+        <section className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-6 animate-fadeIn">
           <div>
             <h2 className="text-3xl md:text-4xl font-extrabold mb-2">
-              Welcome back, <span className={themeClasses.accent}>User!</span>
+              Welcome back, <span className={themeClasses.accent}>{user?.firstName || 'User'}!</span>
             </h2>
             <p className={`text-base md:text-lg ${themeClasses.muted}`}>
-              Here’s your progress and routines at a glance.
+              Here's your progress and routines at a glance.
             </p>
           </div>
-          <div className="grid grid-cols-3 gap-5 w-full md:w-auto">
-            <div
-              className={`${themeClasses.card} p-4 rounded-2xl border flex flex-col items-center`}
-            >
-              <span className="text-sm font-medium mb-1">Tasks Completed Today</span>
-              <span className="font-extrabold text-2xl text-green-400">5</span>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 w-full lg:w-auto">
+            <div className={`${themeClasses.cardStatic} p-4 rounded-2xl border flex flex-col items-center min-w-[100px]`}>
+              <ListCheck className="w-5 h-5 text-green-400 mb-1" />
+              <span className="text-xs font-medium mb-1">Tasks Today</span>
+              <span className="font-extrabold text-xl text-green-400">{stats.todayCompleted}</span>
             </div>
-            <div
-              className={`${themeClasses.card} p-4 rounded-2xl border flex flex-col items-center`}
-            >
-              <span className="text-sm font-medium mb-1">Total Streak</span>
-              <span className="font-extrabold text-2xl text-purple-400">23</span>
+            <div className={`${themeClasses.cardStatic} p-4 rounded-2xl border flex flex-col items-center min-w-[100px]`}>
+              <Flame className="w-5 h-5 text-orange-400 mb-1" />
+              <span className="text-xs font-medium mb-1">Streak</span>
+              <span className="font-extrabold text-xl text-orange-400">{stats.currentStreak} days</span>
             </div>
-            <div
-              className={`${themeClasses.card} p-4 rounded-2xl border flex flex-col items-center`}
-            >
-              <span className="text-sm font-medium mb-1">Upcoming Routines</span>
-              <span className="font-extrabold text-2xl text-blue-400">3</span>
+            <div className={`${themeClasses.cardStatic} p-4 rounded-2xl border flex flex-col items-center min-w-[100px]`}>
+              <Trophy className="w-5 h-5 text-yellow-400 mb-1" />
+              <span className="text-xs font-medium mb-1">Points</span>
+              <span className="font-extrabold text-xl text-yellow-400">{stats.points} pts</span>
+            </div>
+            <div className={`${themeClasses.cardStatic} p-4 rounded-2xl border flex flex-col items-center min-w-[100px]`}>
+              <Calendar className="w-5 h-5 text-blue-400 mb-1" />
+              <span className="text-xs font-medium mb-1">Routines</span>
+              <span className="font-extrabold text-xl text-blue-400">{stats.totalRoutines}</span>
             </div>
           </div>
         </section>
 
-        {/* Routines Section with Add button */}
+        {/* Routines Section */}
         <section>
           <div className="flex items-center justify-between mb-7">
             <h3 className="text-2xl font-bold">Your Routines</h3>
             <Link
-              to="/add-routine"
-              className={`flex items-center gap-2 px-5 py-2 rounded-xl shadow ${themeClasses.button} transition-all text-white font-semibold hover:scale-105 hover:shadow-2xl`}
+              to="/routine"
+              className="flex items-center gap-2 px-5 py-2 rounded-xl shadow bg-gradient-to-r from-rose-500 to-orange-500 transition-all text-white font-semibold hover:scale-105 hover:shadow-2xl"
             >
               <Plus className="w-5 h-5" /> Add Routine
             </Link>
           </div>
-          <div className="grid md:grid-cols-2 gap-8">
-            {sampleRoutines.map((routine) => (
+
+          {loading ? (
+            <div className="flex items-center justify-center py-20">
+              <div className="w-10 h-10 border-4 border-rose-500 border-t-transparent rounded-full animate-spin"></div>
+            </div>
+          ) : routines.length === 0 ? (
+            <div className={`${themeClasses.cardStatic} border rounded-3xl p-12 text-center`}>
+              <div className="text-6xl mb-4">🎯</div>
+              <h4 className="text-xl font-bold mb-2">No routines yet!</h4>
+              <p className={`${themeClasses.muted} mb-6`}>Create your first routine to start building better habits.</p>
               <Link
-                key={routine.name}
-                to={`/routines/${encodeURIComponent(
-                  routine.name.replace(/\s+/g, "-").toLowerCase()
-                )}`}
-                className={`flex flex-col md:flex-row items-center md:items-stretch ${themeClasses.card} border rounded-3xl p-6 gap-6 hover:scale-[1.025] group transition-transform duration-300 hover:shadow-lg`}
-                style={{ textDecoration: "none" }}
+                to="/routine"
+                className="inline-flex items-center gap-2 px-6 py-3 rounded-xl bg-gradient-to-r from-rose-500 to-orange-500 text-white font-semibold hover:scale-105 transition-all"
               >
-                <div className="flex-1 min-w-0">
-                  <h4 className="text-lg font-bold mb-2">{routine.name}</h4>
-                  <ul className="text-sm mb-4 list-disc list-inside pl-2">
-                    {routine.tasks.map((task) => (
-                      <li key={task} className={themeClasses.muted}>
-                        {task}
-                      </li>
-                    ))}
-                  </ul>
-                  <div className="flex items-center mb-2">
-                    <div className="w-full h-3 bg-gray-200/30 rounded-full overflow-hidden">
-                      <div
-                        className="h-3 rounded-full bg-gradient-to-r from-blue-500 to-orange-400 transition-all"
-                        style={{ width: `${routine.completion}%` }}
-                      ></div>
-                    </div>
-                    <span className="text-xs ml-3 font-semibold">{routine.completion}%</span>
-                  </div>
-                  <span className={`text-xs ${themeClasses.muted}`}>
-                    Current Streak: {routine.streak} days
-                  </span>
-                </div>
-                <span className="md:hidden text-sm px-3 py-1 rounded-xl font-medium bg-blue-500/10 text-blue-500 group-hover:bg-orange-500/20 group-hover:text-orange-600">
-                  View Details &rarr;
-                </span>
+                <Plus className="w-5 h-5" /> Create Routine
               </Link>
-            ))}
-          </div>
+            </div>
+          ) : (
+            <div className="grid md:grid-cols-2 gap-6">
+              {routines.slice(0, 4).map((routine) => {
+                const isAllDone = routine.tasks.length > 0 && routine.tasks.every((t) => t.completed);
+                return (
+                  <Link
+                    key={routine._id}
+                    to="/routine"
+                    className={`flex flex-col ${themeClasses.cardStatic} border rounded-3xl p-6 gap-4 hover:scale-[1.02] group transition-all duration-300 hover:shadow-lg`}
+                    style={{ textDecoration: 'none' }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <h4 className="text-lg font-bold">{routine.name}</h4>
+                      <span className="px-3 py-1 rounded-lg bg-gradient-to-br from-rose-500/20 to-orange-500/20 text-rose-500 text-xs font-bold uppercase tracking-wider">
+                        {routine.category || 'General'}
+                      </span>
+                    </div>
+                    <ul className="text-sm pl-2 space-y-1.5">
+                      {routine.tasks.slice(0, 3).map((task) => (
+                        <li key={task._id} className={`list-none flex items-center gap-2 ${task.completed ? 'line-through text-green-400' : themeClasses.muted}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${task.completed ? 'bg-green-400' : 'bg-rose-400'} flex-shrink-0`}></span>
+                          <span className="truncate pr-2">{task.name}</span>
+                          {task.time && (
+                            <span className="text-xs text-rose-400 font-bold ml-auto flex items-center gap-0.5 flex-shrink-0">
+                              🕒 {task.time}
+                            </span>
+                          )}
+                        </li>
+                      ))}
+                      {routine.tasks.length > 3 && (
+                        <li className={`${themeClasses.muted} list-none pl-3.5`}>+{routine.tasks.length - 3} more</li>
+                      )}
+                    </ul>
+                    <div className="flex items-center mt-auto">
+                      <div className="w-full h-3 bg-gray-200/20 rounded-full overflow-hidden">
+                        <div
+                          className="h-3 rounded-full bg-gradient-to-r from-rose-500 to-orange-500 transition-all duration-500"
+                          style={{ width: `${getCompletionPercent(routine)}%` }}
+                        ></div>
+                      </div>
+                      <span className="text-xs ml-3 font-semibold">{getCompletionPercent(routine)}%</span>
+                    </div>
+                    <div className="flex items-center justify-between mt-2 pt-3 border-t border-white/5">
+                      <div className="flex gap-3 text-xs">
+                        <span className="text-green-400">🔥 Streak: {routine.streak}d</span>
+                        <span className={themeClasses.muted}>Best: {routine.longestStreak}d</span>
+                      </div>
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleToggleCompleteRoutine(routine._id);
+                        }}
+                        className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all hover:scale-105 ${
+                          isAllDone
+                            ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                            : 'bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20'
+                        }`}
+                      >
+                        {isAllDone ? '✓ Reset' : '✓ Mark Done'}
+                      </button>
+                    </div>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
         </section>
+
+        <style>{`
+          .animate-fadeIn { animation: fadeIn 0.8s ease-out both; }
+          @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: none; } }
+        `}</style>
       </main>
     </div>
   );

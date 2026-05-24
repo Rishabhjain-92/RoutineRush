@@ -1,212 +1,398 @@
-import { useState } from "react";
-import SideBar from "../components/Sidebar/SideBar";
-import {
-  Users,
-  Trophy,
-  Sparkles,
-  ArrowUpRight,
-  ChevronDown,
-  ChevronUp,
-  Search,
-  Plus,
-} from "lucide-react";
-import { useLocation } from "react-router-dom";
-
-// Example leaderboard and friends data (replace with real data)
-const leaderboard = [
-  { name: "Sophia Carter", streak: 9, points: 150, avatar: "/avatars/sophia.png" },
-  { name: "Ethan Bennett", streak: 7, points: 100, avatar: "/avatars/ethan.png" },
-  { name: "Olivia Hayes", streak: 6, points: 85, avatar: "/avatars/olivia.png" },
-  { name: "Liam Foster", streak: 1, points: 62, avatar: "/avatars/liam.png" },
-];
-
-const friends = [
-  { name: "Sophia Carter", completed: "90%", avatar: "/avatars/sophia.png" },
-  { name: "Ethan Bennett", completed: "85%", avatar: "/avatars/ethan.png" },
-  { name: "Olivia Hayes", completed: "28%", avatar: "/avatars/olivia.png" },
-  { name: "Liam Foster", completed: "12%", avatar: "/avatars/liam.png" },
-];
+import { useState, useEffect } from 'react';
+import SideBar from '../components/Sidebar/SideBar';
+import { Users, Trophy, Sparkles, Search, Plus, UserPlus, UserMinus, Check, X, Flame, Trash2, ShieldAlert } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
+import API from '../api/axios';
+import toast from 'react-hot-toast';
 
 export default function GroupTrackingPage() {
-  const [isDark, setIsDark] = useState(true);
-  const [leaderSort, setLeaderSort] = useState("points"); // "points" or "streak"
-  const [search, setSearch] = useState("");
-  const location = useLocation();
+  const { isDark, themeClasses } = useTheme();
+  const { user } = useAuth();
+  
+  const [search, setSearch] = useState('');
+  const [searchResults, setSearchResults] = useState([]);
+  const [friendsData, setFriendsData] = useState({ friends: [], receivedRequests: [], sentRequests: [] });
+  const [leaderboard, setLeaderboard] = useState([]);
+  const [leaderSort, setLeaderSort] = useState('points'); // 'points' or 'streak'
+  const [loading, setLoading] = useState(true);
 
-  const themeClasses = {
-    bg: isDark
-      ? "bg-gradient-to-br from-slate-900 via-slate-800 to-slate-900 text-white"
-      : "bg-gradient-to-br from-blue-50 via-indigo-50 to-purple-50 text-slate-800",
-    card: isDark ? "bg-white/5 border-white/10" : "bg-white/90 border-indigo-200/50",
-    accent: isDark ? "text-blue-400" : "text-indigo-600",
-    button: isDark
-      ? "bg-gradient-to-r from-blue-500 to-cyan-400"
-      : "bg-gradient-to-r from-indigo-500 to-purple-500",
-    muted: isDark ? "text-slate-300" : "text-slate-600",
+  useEffect(() => {
+    fetchFriendsData();
+    fetchLeaderboard();
+  }, []);
+
+  const fetchFriendsData = async () => {
+    try {
+      const { data } = await API.get('/users/friends');
+      setFriendsData(data);
+    } catch (error) {
+      console.error('Failed to load friends:', error);
+      toast.error('Failed to load friends list');
+    } finally {
+      setLoading(false);
+    }
   };
 
-  // Filter friends according to search query
-  const filteredFriends = friends.filter((f) =>
-    f.name.toLowerCase().includes(search.toLowerCase())
-  );
+  const fetchLeaderboard = async () => {
+    try {
+      const { data } = await API.get('/users/leaderboard');
+      setLeaderboard(data);
+    } catch (error) {
+      console.error('Failed to load leaderboard:', error);
+    }
+  };
+
+  const handleSearch = async (val) => {
+    setSearch(val);
+    if (!val.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    try {
+      const { data } = await API.get(`/users/search?query=${val}`);
+      setSearchResults(data);
+    } catch (err) {
+      console.error('Search error:', err);
+    }
+  };
+
+  const handleSendRequest = async (friendId) => {
+    try {
+      await API.post(`/users/friend-request/${friendId}`);
+      toast.success('Friend request sent! ✉️');
+      setSearchResults((prev) =>
+        prev.map((u) => (u._id === friendId ? { ...u, relationship: 'sent' } : u))
+      );
+      fetchFriendsData();
+    } catch (err) {
+      toast.error(err.response?.data?.message || 'Failed to send request');
+    }
+  };
+
+  const handleAcceptRequest = async (friendId) => {
+    try {
+      await API.put(`/users/friend-request/${friendId}/accept`);
+      toast.success('Friend request accepted! 🤝');
+      setSearchResults((prev) =>
+        prev.map((u) => (u._id === friendId ? { ...u, relationship: 'friend' } : u))
+      );
+      fetchFriendsData();
+      fetchLeaderboard();
+    } catch (err) {
+      toast.error('Failed to accept request');
+    }
+  };
+
+  const handleDeclineRequest = async (friendId) => {
+    try {
+      await API.put(`/users/friend-request/${friendId}/decline`);
+      toast.success('Friend request declined');
+      setSearchResults((prev) =>
+        prev.map((u) => (u._id === friendId ? { ...u, relationship: 'none' } : u))
+      );
+      fetchFriendsData();
+    } catch (err) {
+      toast.error('Failed to decline request');
+    }
+  };
+
+  const handleRemoveFriend = async (friendId) => {
+    if (!confirm('Are you sure you want to remove this friend?')) return;
+    try {
+      await API.delete(`/users/friend/${friendId}`);
+      toast.success('Friend removed');
+      setSearchResults((prev) =>
+        prev.map((u) => (u._id === friendId ? { ...u, relationship: 'none' } : u))
+      );
+      fetchFriendsData();
+      fetchLeaderboard();
+    } catch (err) {
+      toast.error('Failed to remove friend');
+    }
+  };
+
+  function getInitials(firstName, lastName) {
+    const f = firstName?.[0] || '';
+    const l = lastName?.[0] || '';
+    return `${f}${l}`.toUpperCase();
+  }
+
+  const avatarColors = [
+    'from-rose-500 to-orange-500',
+    'from-blue-500 to-cyan-500',
+    'from-green-500 to-emerald-500',
+    'from-purple-500 to-pink-500',
+    'from-amber-500 to-yellow-500'
+  ];
 
   return (
-    <div
-      className={`flex min-h-screen w-full overflow-hidden ${themeClasses.bg} transition-all duration-700`}
-    >
-      <SideBar isDark={isDark} setIsDark={setIsDark} location={location} />
+    <div className={`flex h-screen w-full overflow-hidden ${themeClasses.body} transition-all duration-700`}>
+      <SideBar />
 
-      <main className="flex-1 px-4 md:px-12 py-8 md:py-12 overflow-y-auto">
+      <main className="flex-1 px-4 md:px-12 py-8 md:py-12 overflow-y-auto relative">
         {/* Header */}
-        <section className="mb-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4 animate-fadeInDown">
+        <section className="mb-10 flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div>
             <h2 className="text-3xl md:text-4xl font-extrabold flex items-center gap-2">
-              <Users className="w-8 h-8 text-blue-400" />
+              <Users className="w-8 h-8 text-rose-500" />
               Group Tracking
             </h2>
-            <p className={`text-lg ${themeClasses.muted} mt-2`}>
+            <p className={`text-base md:text-lg ${themeClasses.muted} mt-1`}>
               Friend progress, leaderboard, and motivation—all in one dashboard.
             </p>
           </div>
-          <div className="flex items-center gap-2">
-            <div className="flex items-center bg-white/10 rounded-xl px-4 py-2">
-              <Search className="w-5 h-5 text-blue-400 mr-2" />
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 relative">
+            <div className={`flex items-center ${isDark ? 'bg-white/10' : 'bg-slate-100'} rounded-xl px-4 py-2 border ${isDark ? 'border-white/5' : 'border-slate-200'}`}>
+              <Search className="w-5 h-5 text-rose-400 mr-2 flex-shrink-0" />
               <input
-                className="bg-transparent focus:outline-none text-white placeholder-slate-400"
-                placeholder="Search friends..."
+                className={`bg-transparent focus:outline-none w-full sm:w-60 text-sm ${isDark ? 'text-white placeholder-slate-400' : 'text-slate-800 placeholder-slate-500'}`}
+                placeholder="Search users by name or email..."
                 value={search}
-                onChange={(e) => setSearch(e.target.value)}
+                onChange={(e) => handleSearch(e.target.value)}
               />
-            </div>
-            <button
-              className={`flex items-center gap-1 px-5 py-2 rounded-xl font-semibold ${themeClasses.button} text-white ml-3 hover:scale-105 transition-all`}
-            >
-              <Plus className="w-5 h-5" /> Invite Friend
-            </button>
-          </div>
-        </section>
-
-        {/* Leaderboard Section */}
-        <section
-          className={`mb-12 ${themeClasses.card} border rounded-3xl p-8 shadow-lg animate-fadeInUp`}
-        >
-          <div className="flex items-center mb-6">
-            <Trophy className="w-8 h-8 text-yellow-400 mr-2" />
-            <h3 className="text-2xl font-bold">This Week&apos;s Leaderboard</h3>
-            <button
-              onClick={() =>
-                setLeaderSort(leaderSort === "points" ? "streak" : "points")
-              }
-              className="ml-4 px-3 py-1 rounded-lg text-xs flex items-center gap-1 border border-blue-400 bg-blue-500/10 hover:bg-blue-700/10 transition hover:scale-105 font-bold"
-            >
-              {leaderSort === "points" ? (
-                <>
-                  Points <ChevronDown className="w-4 h-4" />
-                </>
-              ) : (
-                <>
-                  Streak <ChevronUp className="w-4 h-4" />
-                </>
-              )}
-            </button>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="min-w-[380px] w-full text-left mt-2">
-              <thead>
-                <tr className="uppercase text-xs tracking-wider text-slate-400">
-                  <th className="py-2 pr-3">#</th>
-                  <th className="py-2 pr-3">Name</th>
-                  <th className="py-2 pr-3">Streak</th>
-                  <th className="py-2 pr-3">Points</th>
-                </tr>
-              </thead>
-              <tbody>
-                {[...leaderboard]
-                  .sort(
-                    leaderSort === "points"
-                      ? (a, b) => b.points - a.points
-                      : (a, b) => b.streak - a.streak
-                  )
-                  .map((entry, idx) => (
-                    <tr
-                      key={entry.name}
-                      className="hover:bg-blue-500/10 transition rounded-xl font-medium"
-                    >
-                      <td className="py-2 pr-3 font-extrabold text-rose-400">{idx + 1}</td>
-                      <td className="flex items-center gap-2 py-2">
-                        <img
-                          src={entry.avatar}
-                          className="w-8 h-8 rounded-full border-2 border-blue-400"
-                          alt="avatar"
-                        />
-                        <span>{entry.name}</span>
-                        {idx === 0 && (
-                          <Sparkles
-                            className="w-5 h-5 text-yellow-400 animate-bounce"
-                            title="Current Leader"
-                          />
-                        )}
-                      </td>
-                      <td className="py-2 pr-3 text-blue-400">{entry.streak}</td>
-                      <td className="py-2 pr-3 text-indigo-400">{entry.points}</td>
-                    </tr>
-                  ))}
-              </tbody>
-            </table>
-          </div>
-        </section>
-
-        {/* Friends Progress Grid */}
-        <section className="mb-12 animate-fadeInUp grid md:grid-cols-2 xl:grid-cols-4 gap-8">
-          {filteredFriends.length === 0 ? (
-            <div className={`col-span-full text-xl font-semibold ${themeClasses.muted}`}>
-              No friends found.
-            </div>
-          ) : (
-            filteredFriends.map((f, idx) => (
-              <div
-                key={f.name}
-                className={`${themeClasses.card} border rounded-3xl p-6 shadow-lg flex flex-col items-center gap-2 group hover:scale-[1.04] transition-transform duration-300 animate-pop`}
-                style={{ animationDelay: `${idx * 120}ms` }}
-              >
-                <img
-                  src={f.avatar}
-                  alt={f.name}
-                  className="w-14 h-14 rounded-full border-2 border-blue-400 group-hover:scale-110 transition-transform"
-                />
-                <h4 className="text-xl font-bold mt-2 mb-1">{f.name}</h4>
-                <div className="w-24 mb-1">
-                  <div className="h-2 rounded-full bg-gray-200/30">
-                    <div
-                      className={`h-2 rounded-full bg-gradient-to-r from-green-400 to-blue-500 animate-widthGrow`}
-                      style={{ width: f.completed }}
-                    ></div>
-                  </div>
-                </div>
-                <span className="text-sm text-blue-400 font-bold">{f.completed} daily tasks</span>
-                <span className="text-xs text-slate-400">Consistency</span>
-                <button
-                  className={`mt-2 px-4 py-2 rounded-xl ${themeClasses.button} text-white font-bold text-xs shadow hover:scale-105 transition-all`}
-                >
-                  View Progress
-                  <ArrowUpRight className="w-4 h-4 ml-1 inline" />
+              {search && (
+                <button onClick={() => handleSearch('')} className="ml-2 text-slate-400 hover:text-rose-500 transition">
+                  <X className="w-4 h-4" />
                 </button>
+              )}
+            </div>
+
+            {/* Float Search Results */}
+            {search && (
+              <div className={`absolute top-full right-0 left-0 sm:left-auto sm:w-[350px] mt-2 border rounded-2xl shadow-2xl p-4 z-50 ${isDark ? 'bg-slate-900/95 border-blue-500/30' : 'bg-white/95 border-indigo-200/90'} backdrop-blur-sm max-h-[300px] overflow-y-auto`}>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-slate-400 mb-3">Search Results</h4>
+                {searchResults.length === 0 ? (
+                  <p className="text-sm text-slate-400 text-center py-4">No users found.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {searchResults.map((u, idx) => (
+                      <div key={u._id} className="flex items-center justify-between gap-2 p-2 rounded-xl hover:bg-white/5 transition">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <div className={`w-8 h-8 rounded-full bg-gradient-to-br ${avatarColors[idx % avatarColors.length]} flex items-center justify-center text-white text-xs font-bold flex-shrink-0`}>
+                            {getInitials(u.firstName, u.lastName)}
+                          </div>
+                          <div className="min-w-0">
+                            <p className="text-sm font-bold truncate leading-tight">{u.firstName} {u.lastName}</p>
+                            <p className="text-xs text-slate-400 truncate leading-none mt-0.5">{u.email}</p>
+                          </div>
+                        </div>
+                        <div className="flex-shrink-0">
+                          {u.relationship === 'friend' && (
+                            <span className="text-xs text-green-400 bg-green-500/10 px-2 py-1 rounded-lg border border-green-500/20 font-bold">Friends</span>
+                          )}
+                          {u.relationship === 'sent' && (
+                            <span className="text-xs text-slate-400 bg-slate-500/10 px-2 py-1 rounded-lg border border-slate-500/20 font-bold">Sent</span>
+                          )}
+                          {u.relationship === 'received' && (
+                            <button
+                              onClick={() => handleAcceptRequest(u._id)}
+                              className="text-xs bg-green-500 text-white px-2.5 py-1 rounded-lg font-bold hover:scale-105 transition"
+                            >
+                              Accept
+                            </button>
+                          )}
+                          {u.relationship === 'none' && (
+                            <button
+                              onClick={() => handleSendRequest(u._id)}
+                              className="text-xs bg-rose-500 text-white px-2.5 py-1 rounded-lg font-bold hover:scale-105 transition flex items-center gap-0.5"
+                            >
+                              <UserPlus className="w-3.5 h-3.5" /> Add
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
-            ))
-          )}
+            )}
+          </div>
         </section>
 
-        {/* Inline custom animations */}
-        <style>{`
-          @keyframes fadeInUp {0%{opacity:0;transform:translateY(42px);}100%{opacity:1;transform:none;}}
-          @keyframes fadeInDown {0%{opacity:0;transform:translateY(-28px);}100%{opacity:1;transform:none;}}
-          @keyframes popIn {0%{opacity:0;transform:scale(.93)}60%{transform:scale(1.07)}100%{opacity:1;transform:scale(1)}}
-          @keyframes widthGrow {from{width:0} to {width:100%}}
-          .animate-fadeInUp{animation:fadeInUp 0.7s cubic-bezier(.7,.2,.2,1) both;}
-          .animate-fadeInDown{animation:fadeInDown .9s cubic-bezier(.7,.2,.2,1) both;}
-          .animate-pop {animation: popIn .5s cubic-bezier(.43,.82,.53,1.28) both;}
-          .animate-widthGrow {animation: widthGrow 1.2s cubic-bezier(.34,.86,.52,1) both;}
-        `}</style>
+        {loading ? (
+          <div className="flex items-center justify-center py-20">
+            <div className="w-10 h-10 border-4 border-rose-500 border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        ) : (
+          <div className="grid lg:grid-cols-12 gap-8 items-start">
+            
+            {/* Friends list & requests */}
+            <div className="lg:col-span-8 space-y-8">
+              
+              {/* Friend Requests list */}
+              {friendsData.receivedRequests.length > 0 && (
+                <section className={`${themeClasses.cardStatic} border rounded-3xl p-6 shadow-lg border-yellow-500/20 bg-gradient-to-r from-yellow-500/5 to-transparent`}>
+                  <h3 className="text-xl font-bold flex items-center gap-2 mb-4 text-yellow-400">
+                    <Sparkles className="w-5 h-5 text-yellow-400" />
+                    Incoming Friend Requests ({friendsData.receivedRequests.length})
+                  </h3>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    {friendsData.receivedRequests.map((reqUser, idx) => (
+                      <div key={reqUser._id} className={`${isDark ? 'bg-white/5' : 'bg-white'} border border-white/5 p-4 rounded-2xl flex items-center justify-between shadow-sm`}>
+                        <div className="flex items-center gap-3">
+                          <div className={`w-10 h-10 rounded-full bg-gradient-to-br ${avatarColors[idx % avatarColors.length]} flex items-center justify-center text-white text-sm font-bold`}>
+                            {getInitials(reqUser.firstName, reqUser.lastName)}
+                          </div>
+                          <div>
+                            <h4 className="font-bold text-sm">{reqUser.firstName} {reqUser.lastName}</h4>
+                            <p className="text-xs text-slate-400">{reqUser.email}</p>
+                          </div>
+                        </div>
+                        <div className="flex gap-1.5">
+                          <button
+                            onClick={() => handleAcceptRequest(reqUser._id)}
+                            className="bg-green-500 text-white p-2 rounded-xl hover:bg-green-600 hover:scale-105 transition"
+                            title="Accept Request"
+                          >
+                            <Check className="w-4 h-4" />
+                          </button>
+                          <button
+                            onClick={() => handleDeclineRequest(reqUser._id)}
+                            className="bg-rose-500 text-white p-2 rounded-xl hover:bg-rose-600 hover:scale-105 transition"
+                            title="Decline Request"
+                          >
+                            <X className="w-4 h-4" />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {/* Friends list */}
+              <section>
+                <h3 className="text-2xl font-bold mb-6 flex items-center gap-2">
+                  My Friends ({friendsData.friends.length})
+                </h3>
+
+                {friendsData.friends.length === 0 ? (
+                  <div className={`${themeClasses.cardStatic} border rounded-3xl p-12 text-center`}>
+                    <div className="text-6xl mb-4">👋</div>
+                    <h4 className="text-xl font-bold mb-2">No friends added yet!</h4>
+                    <p className={`${themeClasses.muted} max-w-sm mx-auto mb-4`}>
+                      Search for users in the search bar above to send a request and start habit battles!
+                    </p>
+                  </div>
+                ) : (
+                  <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                    {friendsData.friends.map((f, idx) => (
+                      <div
+                        key={f._id}
+                        className={`${themeClasses.cardStatic} border rounded-3xl p-6 shadow-md flex flex-col items-center gap-2 group hover:scale-[1.03] transition-all duration-300 relative`}
+                      >
+                        {/* Remove button */}
+                        <button
+                          onClick={() => handleRemoveFriend(f._id)}
+                          className="absolute top-4 right-4 text-slate-400 hover:text-red-500 transition opacity-0 group-hover:opacity-100"
+                          title="Remove Friend"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+
+                        <div className={`w-16 h-16 rounded-full bg-gradient-to-br ${avatarColors[idx % avatarColors.length]} flex items-center justify-center text-white text-xl font-bold group-hover:scale-110 transition-transform shadow`}>
+                          {getInitials(f.firstName, f.lastName)}
+                        </div>
+
+                        <h4 className="text-lg font-bold mt-2 truncate max-w-full text-center">{f.firstName} {f.lastName}</h4>
+                        
+                        <div className="flex gap-2 text-xs font-semibold mb-2">
+                          <span className="text-yellow-400">🏆 {f.points || 0} pts</span>
+                          <span className="text-orange-400">🔥 {f.streak || 0}d</span>
+                        </div>
+
+                        <div className="w-full mt-2">
+                          <div className="flex justify-between text-xs font-medium mb-1">
+                            <span className={themeClasses.muted}>Today's Progress</span>
+                            <span className="text-rose-500 font-bold">{f.progressPercent}%</span>
+                          </div>
+                          <div className="h-2 rounded-full bg-gray-200/20 overflow-hidden">
+                            <div
+                              className="h-2 rounded-full bg-gradient-to-r from-rose-500 to-orange-500 transition-all duration-500"
+                              style={{ width: `${f.progressPercent}%` }}
+                            ></div>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </section>
+            </div>
+
+            {/* Leaderboard Column */}
+            <div className="lg:col-span-4">
+              <section className={`${themeClasses.cardStatic} border rounded-3xl p-6 shadow-lg border-yellow-500/20`}>
+                <div className="flex items-center justify-between mb-6">
+                  <div className="flex items-center">
+                    <Trophy className="w-6 h-6 text-yellow-400 mr-2 animate-pulse" />
+                    <h3 className="text-xl font-bold">Leaderboard</h3>
+                  </div>
+                  <button
+                    onClick={() => setLeaderSort(leaderSort === 'points' ? 'streak' : 'points')}
+                    className="px-2.5 py-1 rounded-xl text-2xs flex items-center gap-0.5 border border-rose-500/20 bg-rose-500/5 hover:bg-rose-500/10 transition font-extrabold text-xs text-rose-400"
+                  >
+                    Sort: {leaderSort === 'points' ? 'Points ↓' : 'Streak ↓'}
+                  </button>
+                </div>
+
+                {leaderboard.length === 0 ? (
+                  <p className="text-sm text-slate-400 text-center py-6">No entries yet.</p>
+                ) : (
+                  <div className="space-y-3">
+                    {[...leaderboard]
+                      .sort((a, b) =>
+                        leaderSort === 'points'
+                          ? (b.points || 0) - (a.points || 0)
+                          : (b.streak || 0) - (a.streak || 0)
+                      )
+                      .map((entry, idx) => {
+                        const isMe = entry._id === user?._id;
+                        return (
+                          <div
+                            key={entry._id}
+                            className={`flex items-center justify-between p-3 rounded-2xl transition border ${
+                              isMe
+                                ? 'bg-gradient-to-r from-yellow-500/10 via-yellow-500/5 to-transparent border-yellow-500/40 shadow-md shadow-yellow-500/5'
+                                : 'bg-transparent border-white/5'
+                            }`}
+                          >
+                            <div className="flex items-center gap-3 min-w-0">
+                              <span className="font-extrabold text-sm w-5 flex-shrink-0 text-center">
+                                {idx === 0 && '🥇'}
+                                {idx === 1 && '🥈'}
+                                {idx === 2 && '🥉'}
+                                {idx > 2 && `${idx + 1}`}
+                              </span>
+                              
+                              <div className={`w-9 h-9 rounded-full bg-gradient-to-br ${avatarColors[idx % avatarColors.length]} flex items-center justify-center text-white text-xs font-bold flex-shrink-0 shadow-inner`}>
+                                {getInitials(entry.firstName, entry.lastName)}
+                              </div>
+                              
+                              <div className="min-w-0">
+                                <p className={`text-sm font-bold truncate leading-tight ${isMe ? 'text-yellow-400' : ''}`}>
+                                  {entry.firstName} {entry.lastName} {isMe && '(You)'}
+                                </p>
+                                <p className="text-xs text-slate-400 flex items-center gap-1 mt-0.5 leading-none">
+                                  <span>🏆 {entry.points || 0} pts</span>
+                                  <span>•</span>
+                                  <span className="text-orange-400 flex items-center gap-0.5">
+                                    <Flame className="w-3 h-3 flex-shrink-0 text-orange-400" /> {entry.streak || 0}d
+                                  </span>
+                                </p>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                  </div>
+                )}
+              </section>
+            </div>
+
+          </div>
+        )}
       </main>
     </div>
   );
