@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Plus, Edit2, Trash2, Check, X, GripVertical } from 'lucide-react';
 import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
+import { motion } from 'framer-motion';
 import SideBar from '../components/Sidebar/SideBar';
 import { useTheme } from '../context/ThemeContext';
 import API from '../api/axios';
@@ -176,6 +177,16 @@ export default function RoutinePage() {
     }
   };
 
+  const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+  };
+
+  const itemVariants = {
+    hidden: { y: 20, opacity: 0 },
+    visible: { y: 0, opacity: 1, transition: { type: 'spring', stiffness: 300, damping: 24 } }
+  };
+
   return (
     <div className={`flex h-screen w-full overflow-hidden ${themeClasses.body} transition-all duration-700`}>
       <SideBar />
@@ -207,16 +218,19 @@ export default function RoutinePage() {
             <p className={`${themeClasses.muted} mb-6`}>Click "Add Routine" to create your first one.</p>
           </div>
         ) : (
-          <section className="grid md:grid-cols-2 gap-6">
+          <motion.section variants={containerVariants} initial="hidden" animate="visible" className="grid md:grid-cols-2 gap-6">
             {routines.map((routine) => {
               const completed = routine.tasks.filter((t) => t.completed).length;
               const total = routine.tasks.length;
               const percent = total > 0 ? Math.round((completed / total) * 100) : 0;
 
               return (
-                <div
+                <motion.div
+                  variants={itemVariants}
+                  whileHover={{ scale: 1.02 }}
+                  whileTap={{ scale: 0.98 }}
                   key={routine._id}
-                  className={`${themeClasses.cardStatic} border rounded-3xl p-6 flex flex-col gap-4 shadow-lg transition-all duration-300 hover:scale-[1.02]`}
+                  className={`${themeClasses.cardStatic} border rounded-3xl p-6 flex flex-col gap-4 shadow-lg transition-shadow hover:shadow-xl`}
                 >
                   <div className="flex items-center justify-between">
                     <h4 className="text-xl font-bold">{routine.name}</h4>
@@ -283,10 +297,10 @@ export default function RoutinePage() {
                       </button>
                     </div>
                   </div>
-                </div>
+                </motion.div>
               );
             })}
-          </section>
+          </motion.section>
         )}
 
         {/* Add/Edit Modal */}

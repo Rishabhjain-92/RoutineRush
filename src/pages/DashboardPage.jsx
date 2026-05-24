@@ -1,11 +1,22 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Plus, Flame, ListCheck, Calendar, Trophy } from 'lucide-react';
+import { motion } from 'framer-motion';
 import SideBar from '../components/Sidebar/SideBar';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import API from '../api/axios';
 import toast from 'react-hot-toast';
+
+const containerVariants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
+};
+
+const itemVariants = {
+  hidden: { y: 20, opacity: 0 },
+  visible: { y: 0, opacity: 1, transition: { type: 'spring', stiffness: 300, damping: 24 } }
+};
 
 export default function DashboardPage() {
   const { isDark, themeClasses } = useTheme();
@@ -103,28 +114,28 @@ export default function DashboardPage() {
               Here's your progress and routines at a glance.
             </p>
           </div>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 w-full lg:w-auto">
-            <div className={`${themeClasses.cardStatic} p-4 rounded-2xl border flex flex-col items-center min-w-[100px]`}>
+          <motion.div variants={containerVariants} initial="hidden" animate="visible" className="grid grid-cols-2 lg:grid-cols-4 gap-4 w-full lg:w-auto">
+            <motion.div variants={itemVariants} whileHover={{ scale: 1.05 }} className={`${themeClasses.cardStatic} p-4 rounded-2xl border flex flex-col items-center min-w-[100px]`}>
               <ListCheck className="w-5 h-5 text-green-400 mb-1" />
               <span className="text-xs font-medium mb-1">Tasks Today</span>
               <span className="font-extrabold text-xl text-green-400">{stats.todayCompleted}</span>
-            </div>
-            <div className={`${themeClasses.cardStatic} p-4 rounded-2xl border flex flex-col items-center min-w-[100px]`}>
+            </motion.div>
+            <motion.div variants={itemVariants} whileHover={{ scale: 1.05 }} className={`${themeClasses.cardStatic} p-4 rounded-2xl border flex flex-col items-center min-w-[100px]`}>
               <Flame className="w-5 h-5 text-orange-400 mb-1" />
               <span className="text-xs font-medium mb-1">Streak</span>
               <span className="font-extrabold text-xl text-orange-400">{stats.currentStreak} days</span>
-            </div>
-            <div className={`${themeClasses.cardStatic} p-4 rounded-2xl border flex flex-col items-center min-w-[100px]`}>
+            </motion.div>
+            <motion.div variants={itemVariants} whileHover={{ scale: 1.05 }} className={`${themeClasses.cardStatic} p-4 rounded-2xl border flex flex-col items-center min-w-[100px]`}>
               <Trophy className="w-5 h-5 text-yellow-400 mb-1" />
               <span className="text-xs font-medium mb-1">Points</span>
               <span className="font-extrabold text-xl text-yellow-400">{stats.points} pts</span>
-            </div>
-            <div className={`${themeClasses.cardStatic} p-4 rounded-2xl border flex flex-col items-center min-w-[100px]`}>
+            </motion.div>
+            <motion.div variants={itemVariants} whileHover={{ scale: 1.05 }} className={`${themeClasses.cardStatic} p-4 rounded-2xl border flex flex-col items-center min-w-[100px]`}>
               <Calendar className="w-5 h-5 text-blue-400 mb-1" />
               <span className="text-xs font-medium mb-1">Routines</span>
               <span className="font-extrabold text-xl text-blue-400">{stats.totalRoutines}</span>
-            </div>
-          </div>
+            </motion.div>
+          </motion.div>
         </section>
 
         {/* Routines Section */}
@@ -156,71 +167,72 @@ export default function DashboardPage() {
               </Link>
             </div>
           ) : (
-            <div className="grid md:grid-cols-2 gap-6">
+            <motion.div variants={containerVariants} initial="hidden" animate="visible" className="grid md:grid-cols-2 gap-6">
               {routines.slice(0, 4).map((routine) => {
                 const isAllDone = routine.tasks.length > 0 && routine.tasks.every((t) => t.completed);
                 return (
-                  <Link
-                    key={routine._id}
-                    to="/routine"
-                    className={`flex flex-col ${themeClasses.cardStatic} border rounded-3xl p-6 gap-4 hover:scale-[1.02] group transition-all duration-300 hover:shadow-lg`}
-                    style={{ textDecoration: 'none' }}
-                  >
-                    <div className="flex items-center justify-between">
-                      <h4 className="text-lg font-bold">{routine.name}</h4>
-                      <span className="px-3 py-1 rounded-lg bg-gradient-to-br from-rose-500/20 to-orange-500/20 text-rose-500 text-xs font-bold uppercase tracking-wider">
-                        {routine.category || 'General'}
-                      </span>
-                    </div>
-                    <ul className="text-sm pl-2 space-y-1.5">
-                      {routine.tasks.slice(0, 3).map((task) => (
-                        <li key={task._id} className={`list-none flex items-center gap-2 ${task.completed ? 'line-through text-green-400' : themeClasses.muted}`}>
-                          <span className={`w-1.5 h-1.5 rounded-full ${task.completed ? 'bg-green-400' : 'bg-rose-400'} flex-shrink-0`}></span>
-                          <span className="truncate pr-2">{task.name}</span>
-                          {task.time && (
-                            <span className="text-xs text-rose-400 font-bold ml-auto flex items-center gap-0.5 flex-shrink-0">
-                              🕒 {task.time}
-                            </span>
-                          )}
-                        </li>
-                      ))}
-                      {routine.tasks.length > 3 && (
-                        <li className={`${themeClasses.muted} list-none pl-3.5`}>+{routine.tasks.length - 3} more</li>
-                      )}
-                    </ul>
-                    <div className="flex items-center mt-auto">
-                      <div className="w-full h-3 bg-gray-200/20 rounded-full overflow-hidden">
-                        <div
-                          className="h-3 rounded-full bg-gradient-to-r from-rose-500 to-orange-500 transition-all duration-500"
-                          style={{ width: `${getCompletionPercent(routine)}%` }}
-                        ></div>
+                  <motion.div key={routine._id} variants={itemVariants} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
+                    <Link
+                      to="/routine"
+                      className={`flex flex-col h-full ${themeClasses.cardStatic} border rounded-3xl p-6 gap-4 group transition-shadow hover:shadow-xl`}
+                      style={{ textDecoration: 'none' }}
+                    >
+                      <div className="flex items-center justify-between">
+                        <h4 className="text-lg font-bold">{routine.name}</h4>
+                        <span className="px-3 py-1 rounded-lg bg-gradient-to-br from-rose-500/20 to-orange-500/20 text-rose-500 text-xs font-bold uppercase tracking-wider">
+                          {routine.category || 'General'}
+                        </span>
                       </div>
-                      <span className="text-xs ml-3 font-semibold">{getCompletionPercent(routine)}%</span>
-                    </div>
-                    <div className="flex items-center justify-between mt-2 pt-3 border-t border-white/5">
-                      <div className="flex gap-3 text-xs">
-                        <span className="text-green-400">🔥 Streak: {routine.streak}d</span>
-                        <span className={themeClasses.muted}>Best: {routine.longestStreak}d</span>
+                      <ul className="text-sm pl-2 space-y-1.5 flex-1">
+                        {routine.tasks.slice(0, 3).map((task) => (
+                          <li key={task._id} className={`list-none flex items-center gap-2 ${task.completed ? 'line-through text-green-400' : themeClasses.muted}`}>
+                            <span className={`w-1.5 h-1.5 rounded-full ${task.completed ? 'bg-green-400' : 'bg-rose-400'} flex-shrink-0`}></span>
+                            <span className="truncate pr-2">{task.name}</span>
+                            {task.time && (
+                              <span className="text-xs text-rose-400 font-bold ml-auto flex items-center gap-0.5 flex-shrink-0">
+                                🕒 {task.time}
+                              </span>
+                            )}
+                          </li>
+                        ))}
+                        {routine.tasks.length > 3 && (
+                          <li className={`${themeClasses.muted} list-none pl-3.5`}>+{routine.tasks.length - 3} more</li>
+                        )}
+                      </ul>
+                      <div className="flex items-center mt-auto">
+                        <div className="w-full h-3 bg-gray-200/20 rounded-full overflow-hidden">
+                          <div
+                            className="h-3 rounded-full bg-gradient-to-r from-rose-500 to-orange-500 transition-all duration-500"
+                            style={{ width: `${getCompletionPercent(routine)}%` }}
+                          ></div>
+                        </div>
+                        <span className="text-xs ml-3 font-semibold">{getCompletionPercent(routine)}%</span>
                       </div>
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleToggleCompleteRoutine(routine._id);
-                        }}
-                        className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all hover:scale-105 ${
-                          isAllDone
-                            ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                            : 'bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20'
-                        }`}
-                      >
-                        {isAllDone ? '✓ Reset' : '✓ Mark Done'}
-                      </button>
-                    </div>
-                  </Link>
+                      <div className="flex items-center justify-between mt-2 pt-3 border-t border-white/5">
+                        <div className="flex gap-3 text-xs">
+                          <span className="text-green-400">🔥 Streak: {routine.streak}d</span>
+                          <span className={themeClasses.muted}>Best: {routine.longestStreak}d</span>
+                        </div>
+                        <button
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            handleToggleCompleteRoutine(routine._id);
+                          }}
+                          className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all hover:scale-105 ${
+                            isAllDone
+                              ? 'bg-green-500/20 text-green-400 border border-green-500/30'
+                              : 'bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20'
+                          }`}
+                        >
+                          {isAllDone ? '✓ Reset' : '✓ Mark Done'}
+                        </button>
+                      </div>
+                    </Link>
+                  </motion.div>
                 );
               })}
-            </div>
+            </motion.div>
           )}
         </section>
 
