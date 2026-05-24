@@ -22,12 +22,17 @@ connectDB();
 const app = express();
 
 // Middleware
+const originEnv = process.env.FRONTEND_URL;
+const normalizedOriginEnv = originEnv && originEnv.endsWith('/') ? originEnv.slice(0, -1) : originEnv;
+
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
   'http://localhost:3000',
-  process.env.FRONTEND_URL
+  normalizedOriginEnv
 ].filter(Boolean);
+
+console.log('📡 Allowed CORS Origins:', allowedOrigins);
 
 app.use(cors({
   origin: allowedOrigins,
