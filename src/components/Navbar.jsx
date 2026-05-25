@@ -138,18 +138,18 @@ export default function Navbar() {
 
         {/* Mobile menu overlay */}
         <div
-          className={`fixed inset-0 bg-black bg-opacity-80 backdrop-blur-sm transform transition-transform duration-300 ease-in-out ${
+          className={`absolute top-0 left-0 w-full h-screen ${isDark ? 'bg-slate-900' : 'bg-slate-50'} transform transition-transform duration-300 ease-in-out ${
             mobileOpen ? 'translate-x-0' : 'translate-x-full'
           } md:hidden z-40`}
         >
-          <div className="p-6 pt-20 flex flex-col space-y-8 font-semibold text-white">
+          <div className="p-6 pt-24 flex flex-col space-y-8 font-semibold">
             {navLinks.map(({ name, path }) => (
               <NavLink
                 key={name}
                 to={path}
                 onClick={() => setMobileOpen(false)}
                 className={({ isActive }) =>
-                  `text-2xl transition-colors ${isActive ? 'text-rose-400' : 'text-white hover:text-rose-300'}`
+                  `text-2xl transition-colors ${isActive ? 'text-rose-500' : isDark ? 'text-white hover:text-rose-400' : 'text-slate-800 hover:text-rose-500'}`
                 }
               >
                 {name}
@@ -160,7 +160,7 @@ export default function Navbar() {
                 to="/dashboard"
                 onClick={() => setMobileOpen(false)}
                 className={({ isActive }) =>
-                  `text-2xl transition-colors ${isActive ? 'text-rose-400' : 'text-white hover:text-rose-300'}`
+                  `text-2xl transition-colors ${isActive ? 'text-rose-500' : isDark ? 'text-white hover:text-rose-400' : 'text-slate-800 hover:text-rose-500'}`
                 }
               >
                 Dashboard
@@ -169,17 +169,17 @@ export default function Navbar() {
             <div className="flex flex-col space-y-4 mt-6">
               {user ? (
                 <>
-                  <p className="text-slate-400 text-lg">Signed in as {user.firstName}</p>
-                  <button onClick={handleLogout} className="px-6 py-3 bg-red-500/20 border border-red-500/40 rounded-xl text-center text-red-300 hover:bg-red-600">
+                  <p className={`text-lg ${isDark ? 'text-slate-400' : 'text-slate-500'}`}>Signed in as {user.firstName}</p>
+                  <button onClick={handleLogout} className={`px-6 py-3 border rounded-xl text-center transition-all ${isDark ? 'bg-red-500/20 border-red-500/40 text-red-400 hover:bg-red-500/30' : 'bg-red-50 border-red-200 text-red-500 hover:bg-red-100'}`}>
                     Logout
                   </button>
                 </>
               ) : (
                 <>
-                  <Link to="/login" onClick={() => setMobileOpen(false)} className="px-6 py-3 border border-white rounded-xl text-center hover:bg-rose-600">
+                  <Link to="/login" onClick={() => setMobileOpen(false)} className={`px-6 py-3 border rounded-xl text-center transition-all ${isDark ? 'border-white text-white hover:bg-white/10' : 'border-indigo-200 text-indigo-600 hover:bg-indigo-50'}`}>
                     Log In
                   </Link>
-                  <Link to="/signup" onClick={() => setMobileOpen(false)} className="px-6 py-3 bg-gradient-to-r from-rose-500 to-orange-500 rounded-xl text-center font-semibold">
+                  <Link to="/signup" onClick={() => setMobileOpen(false)} className="px-6 py-3 bg-gradient-to-r from-rose-500 to-orange-500 rounded-xl text-center text-white font-semibold transition-all hover:scale-105 hover:shadow-lg">
                     Sign Up
                   </Link>
                 </>

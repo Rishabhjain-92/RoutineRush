@@ -54,6 +54,8 @@ router.put('/profile', async (req, res) => {
       user.password = password; // Will be hashed by pre-save hook
     }
 
+    const updatedUser = await user.save();
+
     res.json({
       _id: updatedUser._id,
       firstName: updatedUser.firstName,

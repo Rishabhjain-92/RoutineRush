@@ -128,6 +128,8 @@ router.put('/:id/toggle-task/:taskId', async (req, res) => {
       return res.status(400).json({ message: 'Once marked as completed, a task cannot be unchecked!' });
     }
 
+    const previouslyAllCompleted = routine.tasks.every((t) => t.completed);
+
     task.completed = true;
 
     // Check if all tasks are completed now
@@ -230,6 +232,8 @@ router.put('/:id/toggle-complete', async (req, res) => {
     if (!routine.tasks || routine.tasks.length === 0) {
       return res.status(400).json({ message: 'Routine has no tasks to complete' });
     }
+
+    const allCompletedBefore = routine.tasks.every((t) => t.completed);
 
     if (allCompletedBefore) {
       return res.status(400).json({ message: 'Once marked as completed, a routine cannot be unchecked today!' });
