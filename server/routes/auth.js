@@ -34,6 +34,7 @@ router.post('/register', async (req, res) => {
       bio: user.bio,
       avatar: user.avatar,
       token: generateToken(user._id),
+      isNewUser: true,
     });
   } catch (error) {
     if (error.name === 'ValidationError') {

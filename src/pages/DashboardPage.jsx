@@ -126,7 +126,7 @@ export default function DashboardPage() {
         <section className="mb-8 flex flex-col md:flex-row md:items-center md:justify-between gap-6 animate-fadeIn">
           <div>
             <h2 className="text-3xl md:text-4xl font-extrabold mb-2">
-              Welcome back, <span className={themeClasses.accent}>{user?.firstName || 'User'}!</span>
+              {user?.isNewUser ? 'Welcome, ' : 'Welcome back, '}<span className={themeClasses.accent}>{user?.firstName || 'User'}!</span>
             </h2>
             <p className={`text-base md:text-lg ${themeClasses.muted}`}>
               Here's your progress and routines at a glance.
