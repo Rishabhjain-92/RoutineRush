@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Plus, Flame, ListCheck, Calendar, Trophy } from 'lucide-react';
+import { Plus, Flame, ListCheck, Calendar, Trophy, Check } from 'lucide-react';
 import { motion } from 'framer-motion';
 import SideBar from '../components/Sidebar/SideBar';
 import { useTheme } from '../context/ThemeContext';
@@ -20,8 +20,9 @@ const itemVariants = {
 
 export default function DashboardPage() {
   const { isDark, themeClasses } = useTheme();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const [routines, setRoutines] = useState([]);
+  const [expandedRoutines, setExpandedRoutines] = useState([]);
   const [stats, setStats] = useState({ todayCompleted: 0, currentStreak: 0, totalRoutines: 0, points: 0 });
   const [loading, setLoading] = useState(true);
 
@@ -87,9 +88,26 @@ export default function DashboardPage() {
       const { data } = await API.put(`/routines/${routineId}/toggle-complete`);
       toast.success('Routine completed! 🏆 +50 Bonus Points!');
       fetchData();
+      if (refreshUser) refreshUser(); // Update points and streak in context
     } catch (error) {
       console.error('Toggle complete routine error:', error);
       toast.error(error.response?.data?.message || 'Failed to update routine status');
+    }
+  };
+
+  const toggleExpand = (e, id) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setExpandedRoutines(prev => prev.includes(id) ? prev.filter(r => r !== id) : [...prev, id]);
+  };
+
+  const handleToggleTask = async (routineId, taskId) => {
+    try {
+      await API.put(`/routines/${routineId}/toggle-task/${taskId}`);
+      fetchData();
+      if (refreshUser) refreshUser();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to update task');
     }
   };
 
@@ -170,33 +188,59 @@ export default function DashboardPage() {
             <motion.div variants={containerVariants} initial="hidden" animate="visible" className="grid md:grid-cols-2 gap-6">
               {routines.slice(0, 4).map((routine) => {
                 const isAllDone = routine.tasks.length > 0 && routine.tasks.every((t) => t.completed);
+                const isExpanded = expandedRoutines.includes(routine._id);
+                const displayedTasks = isExpanded ? routine.tasks : routine.tasks.slice(0, 3);
+                
                 return (
                   <motion.div key={routine._id} variants={itemVariants} whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-                    <Link
-                      to="/routine"
-                      className={`flex flex-col h-full ${themeClasses.cardStatic} border rounded-3xl p-6 gap-4 group transition-shadow hover:shadow-xl`}
-                      style={{ textDecoration: 'none' }}
+                    <div
+                      className={`flex flex-col h-full ${themeClasses.cardStatic} border rounded-3xl p-6 gap-4 group transition-shadow hover:shadow-xl relative`}
                     >
                       <div className="flex items-center justify-between">
-                        <h4 className="text-lg font-bold">{routine.name}</h4>
+                        <Link to="/routine" className="text-lg font-bold hover:text-rose-500 transition" title="Edit Routine">{routine.name}</Link>
                         <span className="px-3 py-1 rounded-lg bg-gradient-to-br from-rose-500/20 to-orange-500/20 text-rose-500 text-xs font-bold uppercase tracking-wider">
                           {routine.category || 'General'}
                         </span>
                       </div>
                       <ul className="text-sm pl-2 space-y-1.5 flex-1">
-                        {routine.tasks.slice(0, 3).map((task) => (
-                          <li key={task._id} className={`list-none flex items-center gap-2 ${task.completed ? 'line-through text-green-400' : themeClasses.muted}`}>
-                            <span className={`w-1.5 h-1.5 rounded-full ${task.completed ? 'bg-green-400' : 'bg-rose-400'} flex-shrink-0`}></span>
-                            <span className="truncate pr-2">{task.name}</span>
+                        {displayedTasks.map((task) => (
+                          <li 
+                            key={task._id} 
+                            className={`list-none flex items-center gap-3 cursor-pointer transition hover:opacity-80 p-1.5 rounded-xl hover:bg-slate-500/5 ${task.completed ? 'text-green-400' : themeClasses.muted}`}
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              if (!task.completed) {
+                                handleToggleTask(routine._id, task._id);
+                              } else {
+                                toast.error('Once marked as completed, a task cannot be unchecked today!');
+                              }
+                            }}
+                          >
+                            <button
+                              className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-all flex-shrink-0 ${
+                                task.completed
+                                  ? 'bg-green-500 border-green-500 text-white'
+                                  : isDark ? 'border-gray-500 hover:border-green-400' : 'border-gray-300 hover:border-green-500'
+                              }`}
+                            >
+                              {task.completed && <Check className="w-3.5 h-3.5" />}
+                            </button>
+                            <span className={`truncate pr-2 ${task.completed ? 'line-through' : ''}`}>{task.name}</span>
                             {task.time && (
-                              <span className="text-xs text-rose-400 font-bold ml-auto flex items-center gap-0.5 flex-shrink-0">
+                              <span className={`text-xs font-bold ml-auto flex items-center gap-0.5 flex-shrink-0 px-2 py-0.5 rounded-lg border ${task.completed ? 'bg-green-500/10 text-green-400 border-green-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'}`}>
                                 🕒 {task.time}
                               </span>
                             )}
                           </li>
                         ))}
                         {routine.tasks.length > 3 && (
-                          <li className={`${themeClasses.muted} list-none pl-3.5`}>+{routine.tasks.length - 3} more</li>
+                          <li 
+                            className={`${themeClasses.accent} list-none pl-3.5 text-xs font-bold cursor-pointer hover:underline mt-1`}
+                            onClick={(e) => toggleExpand(e, routine._id)}
+                          >
+                            {isExpanded ? 'Show less' : `+${routine.tasks.length - 3} more`}
+                          </li>
                         )}
                       </ul>
                       <div className="flex items-center mt-auto">
@@ -219,16 +263,16 @@ export default function DashboardPage() {
                             e.stopPropagation();
                             handleToggleCompleteRoutine(routine._id);
                           }}
-                          className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all hover:scale-105 ${
+                          className={`px-3.5 py-1.5 rounded-xl text-xs font-extrabold transition-all ${
                             isAllDone
-                              ? 'bg-green-500/20 text-green-400 border border-green-500/30'
-                              : 'bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20'
+                              ? 'bg-green-500/20 text-green-400 border border-green-500/30 cursor-not-allowed opacity-80'
+                              : 'bg-rose-500/10 text-rose-400 border border-rose-500/20 hover:bg-rose-500/20 hover:scale-105'
                           }`}
                         >
-                          {isAllDone ? '✓ Reset' : '✓ Mark Done'}
+                          {isAllDone ? '✓ Completed' : '✓ Mark Done'}
                         </button>
                       </div>
-                    </Link>
+                    </div>
                   </motion.div>
                 );
               })}

@@ -42,9 +42,33 @@ router.get('/stats', async (req, res) => {
     const routines = await Routine.find({ user: req.user._id });
     const totalRoutines = routines.length;
 
+    // Clean up orphaned progress and precisely recalculate points
+    const allProgress = await Progress.find({ user: req.user._id }).populate('routine');
+    let recalculatedPoints = 0;
+    const validProgress = [];
+
+    for (const p of allProgress) {
+      if (!p.routine) {
+        await Progress.findByIdAndDelete(p._id);
+      } else {
+        validProgress.push(p);
+        recalculatedPoints += p.completedTasks.length * 10;
+        if (p.completionPercent === 100) {
+          recalculatedPoints += 50;
+        }
+      }
+    }
+
+    // Update user points if they don't match the valid progress calculation
+    const user = await User.findById(req.user._id);
+    if (user && user.points !== recalculatedPoints) {
+      user.points = recalculatedPoints;
+      await user.save();
+    }
+    const points = user ? (user.points || 0) : 0;
+
     // Total completed days (unique dates with >= 50% completion)
-    const allProgress = await Progress.find({ user: req.user._id });
-    const completedDays = allProgress.filter((p) => p.completionPercent >= 50).length;
+    const completedDays = validProgress.filter((p) => p.completionPercent >= 50).length;
 
     // Current streak across all routines
     const currentStreak = routines.reduce((max, r) => Math.max(max, r.streak), 0);
@@ -52,7 +76,7 @@ router.get('/stats', async (req, res) => {
 
     // Today's completed tasks
     const todayStr = new Date().toISOString().split('T')[0];
-    const todayProgress = await Progress.find({ user: req.user._id, date: todayStr });
+    const todayProgress = validProgress.filter((p) => p.date === todayStr);
     const todayCompleted = todayProgress.reduce((sum, p) => sum + p.completedTasks.length, 0);
 
     // Weekly data (last 7 days)
@@ -63,7 +87,7 @@ router.get('/stats', async (req, res) => {
       const d = new Date();
       d.setDate(d.getDate() - i);
       const dateStr = d.toISOString().split('T')[0];
-      const dayEntries = allProgress.filter((p) => p.date === dateStr);
+      const dayEntries = validProgress.filter((p) => p.date === dateStr);
 
       let percent = 0;
       if (dayEntries.length > 0) {
@@ -77,9 +101,6 @@ router.get('/stats', async (req, res) => {
         percent,
       });
     }
-
-    const user = await User.findById(req.user._id);
-    const points = user ? (user.points || 0) : 0;
 
     res.json({
       totalRoutines,

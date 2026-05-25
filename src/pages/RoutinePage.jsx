@@ -4,11 +4,13 @@ import { DragDropContext, Droppable, Draggable } from '@hello-pangea/dnd';
 import { motion } from 'framer-motion';
 import SideBar from '../components/Sidebar/SideBar';
 import { useTheme } from '../context/ThemeContext';
+import { useAuth } from '../context/AuthContext';
 import API from '../api/axios';
 import toast from 'react-hot-toast';
 
 export default function RoutinePage() {
   const { isDark, themeClasses } = useTheme();
+  const { refreshUser } = useAuth();
   const [routines, setRoutines] = useState([]);
   const [loading, setLoading] = useState(true);
   const [showAdd, setShowAdd] = useState(false);
@@ -141,6 +143,7 @@ export default function RoutinePage() {
       await API.delete(`/routines/${id}`);
       setRoutines((prev) => prev.filter((r) => r._id !== id));
       toast.success('Routine deleted');
+      if (refreshUser) refreshUser(); // Update points on UI
     } catch (error) {
       toast.error('Failed to delete routine');
     }

@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { User, Key, Edit2, Trash2, Camera } from 'lucide-react';
 import SideBar from '../components/Sidebar/SideBar';
 import { useTheme } from '../context/ThemeContext';
@@ -20,6 +20,13 @@ export default function ProfilePage() {
 
   const fileInputRef = useRef(null);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const { refreshUser } = useAuth();
+  
+  useEffect(() => {
+    if (refreshUser) {
+      refreshUser();
+    }
+  }, []);
 
   const handleAvatarChange = async (e) => {
     const file = e.target.files[0];

@@ -338,6 +338,31 @@ router.delete('/:id', async (req, res) => {
       return res.status(404).json({ message: 'Routine not found' });
     }
 
+    const todayStr = new Date().toISOString().split('T')[0];
+    const todayProgress = await Progress.findOne({ routine: req.params.id, date: todayStr });
+    
+    let pointsToDeduct = 0;
+    if (todayProgress) {
+      pointsToDeduct += todayProgress.completedTasks.length * 10;
+      if (todayProgress.completionPercent === 100) {
+        pointsToDeduct += 50;
+      }
+    }
+
+    await Progress.deleteMany({ routine: req.params.id });
+
+    try {
+      const user = await User.findById(req.user._id);
+      if (user) {
+        user.points = Math.max(0, (user.points || 0) - pointsToDeduct);
+        const allRoutines = await Routine.find({ user: req.user._id });
+        user.streak = allRoutines.reduce((max, r) => Math.max(max, r.streak), 0);
+        await user.save();
+      }
+    } catch (userSaveError) {
+      console.error('Failed to update user points or streak on delete:', userSaveError);
+    }
+
     res.json({ message: 'Routine deleted successfully' });
   } catch (error) {
     console.error('Delete routine error:', error);

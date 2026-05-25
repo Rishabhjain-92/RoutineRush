@@ -303,7 +303,7 @@ router.get('/friends', async (req, res) => {
 // @access  Private
 router.get('/leaderboard', async (req, res) => {
   try {
-    const currentUser = await User.findById(req.user._id).select('firstName lastName email avatar points streak');
+    const currentUser = await User.findById(req.user._id).select('firstName lastName email avatar points streak friends');
     const friends = await User.find({ _id: { $in: currentUser.friends } }).select('firstName lastName email avatar points streak');
 
     const leaderboard = [currentUser, ...friends].sort((a, b) => (b.points || 0) - (a.points || 0));
