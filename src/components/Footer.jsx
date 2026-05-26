@@ -29,7 +29,7 @@ export default function Footer() {
             {[
               { icon: Instagram, href: 'https://www.instagram.com/rishabh_jain921', color: 'hover:text-pink-500', hoverBg: 'hover:bg-pink-500/10' },
               { icon: Github, href: 'https://github.com/Rishabhjain-92', color: isDark ? 'hover:text-gray-300' : 'hover:text-gray-800', hoverBg: 'hover:bg-gray-500/10' },
-              { icon: Linkedin, href: 'https://www.linkedin.com/in/rishabh-jain-296235291', color: 'hover:text-blue-700', hoverBg: 'hover:bg-blue-500/10' },
+              { icon: Linkedin, href: 'https://www.linkedin.com/in/rishabhjain92', color: 'hover:text-blue-700', hoverBg: 'hover:bg-blue-500/10' },
               { icon: Mail, href: 'mailto:rishabhjain92148@gmail.com', color: 'hover:text-red-500', hoverBg: 'hover:bg-red-500/10' },
             ].map(({ icon: Icon, href, color, hoverBg }, i) => (
               <a

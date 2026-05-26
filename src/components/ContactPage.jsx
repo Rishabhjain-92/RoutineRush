@@ -88,7 +88,7 @@ const ContactPage = () => {
           <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto">
             {[
               { icon: Instagram, title: 'Instagram', href: 'https://www.instagram.com/rishabh_jain921', gradient: 'from-purple-500 to-pink-600' },
-              { icon: Linkedin, title: 'LinkedIn', href: 'https://www.linkedin.com/in/rishabh-jain-296235291', gradient: 'from-blue-600 to-blue-700' },
+              { icon: Linkedin, title: 'LinkedIn', href: 'https://www.linkedin.com/in/rishabhjain92', gradient: 'from-blue-600 to-blue-700' },
               { icon: Github, title: 'GitHub', href: 'https://github.com/Rishabhjain-92', gradient: 'from-gray-700 to-gray-800' },
             ].map((social) => {
               const Icon = social.icon;
